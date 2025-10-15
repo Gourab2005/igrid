@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, Menu, X, MessageSquare, Ticket, Users, BarChart3, Settings, Bell, Search, Filter, Download, CheckCircle, Clock, AlertCircle, User, Mail, Phone, Zap, TrendingUp, Database, Shield, Cpu, HardDrive, Key, UserCog, Crown, Activity, FileText, Target, Award, LogOut } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Send, Menu, X, MessageSquare, Ticket, Users, BarChart3, Settings, Bell,Download, CheckCircle, Clock, AlertCircle, User, Mail, Phone, Zap, UserCog, Crown } from 'lucide-react';
 
 import LOGO from './assets/Logo.png'
 
@@ -56,18 +56,31 @@ const App = () => {
   const [activeView, setActiveView] = useState('chat');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tickets, setTickets] = useState(generateInitialTickets());
-  const [messages, setMessages] = useState([
+  type MessageAction = {
+    label: string;
+    action: string;
+    data?: unknown;
+  };
+
+  type Message = {
+    type: string;
+    text: string;
+    timestamp: Date;
+    actions?: MessageAction[];
+  };
+
+  const [messages, setMessages] = useState<Message[]>([
     { type: 'bot', text: 'Hello! I\'m your POWERGRID IT Support Assistant. How can I help you today?', timestamp: new Date() }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [userRole, setUserRole] = useState('employee');
   const [selectedDomain, setSelectedDomain] = useState('Network Team');
-  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [selectedTicket, setSelectedTicket] = useState<typeof tickets[0] | null>(null);
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [showRoleSelector, setShowRoleSelector] = useState(true);
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,7 +90,7 @@ const App = () => {
     scrollToBottom();
   }, [messages]);
 
-  const classifyTicket = async (userMessage) => {
+  const classifyTicket = async (userMessage: string) => {
     const lowercaseMsg = userMessage.toLowerCase();
     
     let category = 'Software/Application Issues';
@@ -109,7 +122,7 @@ const App = () => {
     return { category, priority };
   };
 
-  const getAIResponse = async (userMessage) => {
+  const getAIResponse = async (userMessage: string) => {
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -127,6 +140,7 @@ const App = () => {
 
       const data = await response.json();
       return data.candidates[0].content.parts[0].text;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return "I understand your concern. Let me create a ticket for our support team to assist you further.";
     }
@@ -181,8 +195,8 @@ const App = () => {
     }, 1000);
   };
 
-  const getCategoryTeam = (category) => {
-    const teams = {
+  const getCategoryTeam = (category: string) => {
+    const teams: Record<string, string> = {
       'Network & Connectivity': 'Network Team',
       'Security & Compliance': 'Security Team',
       'Software/Application Issues': 'Application Team',
@@ -192,27 +206,28 @@ const App = () => {
     return teams[category] || 'Support Team';
   };
 
-  const getCategoryColor = (category) => {
+  const getCategoryColor = (category: string) => {
     const colors = {
       'Network & Connectivity': 'bg-gray-600',
       'Security & Compliance': 'bg-purple-600',
       'Software/Application Issues': 'bg-pink-600',
       'Hardware Issues': 'bg-yellow-600',
       'Account & Access Management': 'bg-cyan-600'
-    };
-    return colors[category] || 'bg-blue-600';
+    } as const;
+    return colors[category as keyof typeof colors] || 'bg-blue-600';
   };
 
-  const handleAction = (action, data) => {
+  const handleAction = (action: string, data: unknown) => {
     if (action === 'create-ticket') {
+      const ticketData = data as { category: string; priority: string; description: string };
       const newTicket = {
         id: `TKT${String(tickets.length + 1001).padStart(6, '0')}`,
-        title: data.description.substring(0, 50) + '...',
-        description: data.description,
-        category: data.category,
-        categoryColor: getCategoryColor(data.category),
-        team: getCategoryTeam(data.category),
-        priority: data.priority,
+        title: ticketData.description.substring(0, 50) + '...',
+        description: ticketData.description,
+        category: ticketData.category,
+        categoryColor: getCategoryColor(ticketData.category),
+        team: getCategoryTeam(ticketData.category),
+        priority: ticketData.priority,
         status: 'Open',
         source: 'Chatbot',
         createdAt: new Date().toISOString(),
@@ -236,10 +251,6 @@ const App = () => {
     }
   };
 
-  const handleTicketUpdate = (ticketId, updates) => {
-    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
-    setSelectedTicket(prev => prev?.id === ticketId ? { ...prev, ...updates } : prev);
-  };
 
   const filteredTickets = tickets.filter(ticket => {
     const categoryMatch = filterCategory === 'All' || ticket.category === filterCategory;
@@ -346,7 +357,7 @@ const App = () => {
 
 
           {/* <div className='w-full flex justify-center'>
-            <div className='flex gap-4 rounded-2xl bg-green-300 h-[80px] flex justify-center items-center p-4'>
+            <div className='flex gap-4 rounded-2xl bg-green-300 h-[80px] justify-center items-center p-4'>
               <div>
                 <h1>Creators:</h1>
               </div>
@@ -531,7 +542,7 @@ const App = () => {
 
           <button
             onClick={() => setShowRoleSelector(true)}
-            className="mt-8 w-full px-4 py-3 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg transition text-sm flex text-[17px] cursor-pointer hover:scale-105 transition-all duration-500 items-center text-black justify-center space-x-2"
+            className="mt-8 w-full px-4 py-3 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg text-sm flex text-[17px] cursor-pointer hover:scale-105 transition-all duration-500 items-center text-black justify-center space-x-2"
           >
             <X className="w-4 h-4" />
             <span>Switch Role</span>
