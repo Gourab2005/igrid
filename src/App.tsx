@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Menu, X, MessageSquare, Ticket, Users, BarChart3, Settings, Bell,Download, CheckCircle, Clock, AlertCircle, User, Mail, Phone, Zap, UserCog, Crown } from 'lucide-react';
 
-import LOGO from './assets/Logo.png'
+import LOGO from '/Logo.png'
 
 const GEMINI_API_KEY = 'AIzaSyCRbfVgO9jy8MIOP_FVWlOLBJ0uMKu_5h4';
 
